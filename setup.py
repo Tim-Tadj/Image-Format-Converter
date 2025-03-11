@@ -54,46 +54,19 @@ base = None
 if sys.platform == "win32":
     base = "Win32GUI"
 
-# Define the executable
-exe = Executable(script="img_convert_gui.py", base=base, icon=None)
+# Define the executable with shortcut information
+exe = Executable(
+    script="img_convert_gui.py",
+    base=base,
+    icon=None,
+    target_name="ImageFormatConverter.exe",  # Name of the executable
+    shortcut_name="ImageFormatConverter",    # Name of the shortcut
+    shortcut_dir="ProgramMenuFolder"         # Location for the shortcut
+)
 
 # Define the MSI installer options
 msi_options = {
-    "upgrade_code": "6a97b479-304f-47c9-a9f5-25c187e7c483",
-    "data": {
-        "Shortcut": [
-            # Shortcut for the start menu
-            (
-                "StartMenuShortcut",
-                "TargetDir",
-                "[TARGETDIR]img_convert_gui.exe",
-                None,
-                "ImageFormatConverter",
-                None,
-                None,
-                "TARGETDIR",
-                None,
-                None,
-                None,
-                "TARGETDIR",
-            ),
-            # Shortcut for the desktop
-            (
-                "DesktopShortcut",
-                "TargetDir",
-                "[TARGETDIR]img_convert_gui.exe",
-                None,
-                "ImageFormatConverter",
-                None,
-                None,
-                "TARGETDIR",
-                None,
-                None,
-                None,
-                "TARGETDIR",
-            ),
-        ]
-    },
+    "upgrade_code": "{6a97b479-304f-47c9-a9f5-25c187e7c483}",
 }
 
 # Setup the application
