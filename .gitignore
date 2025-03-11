@@ -1,0 +1,4 @@
+build/
+versions/
+.venv/
+uv.lock
