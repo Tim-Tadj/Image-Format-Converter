@@ -1,5 +1,6 @@
 import sys
 from cx_Freeze import setup, Executable
+import os
 
 # Define build options with optimized includes and excludes
 build_exe_options = {
@@ -42,13 +43,11 @@ build_exe_options = {
         "asyncio",
         "curses",
         "bz2",
-        "lzma"
-
+        "lzma",
     ],
     "include_files": [],
     "optimize": 2,
 }
-
 
 # Determine the base for GUI application on Windows
 base = None
@@ -56,17 +55,52 @@ if sys.platform == "win32":
     base = "Win32GUI"
 
 # Define the executable
-exe = Executable(
-    script="img_convert_gui.py",
-    base=base,
-    icon=None 
-)
+exe = Executable(script="img_convert_gui.py", base=base, icon=None)
+
+# Define the MSI installer options
+msi_options = {
+    "upgrade_code": "6a97b479-304f-47c9-a9f5-25c187e7c483",
+    "data": {
+        "Shortcut": [
+            # Shortcut for the start menu
+            (
+                "StartMenuShortcut",
+                "TargetDir",
+                "[TARGETDIR]img_convert_gui.exe",
+                None,
+                "ImageFormatConverter",
+                None,
+                None,
+                "TARGETDIR",
+                None,
+                None,
+                None,
+                "TARGETDIR",
+            ),
+            # Shortcut for the desktop
+            (
+                "DesktopShortcut",
+                "TargetDir",
+                "[TARGETDIR]img_convert_gui.exe",
+                None,
+                "ImageFormatConverter",
+                None,
+                None,
+                "TARGETDIR",
+                None,
+                None,
+                None,
+                "TARGETDIR",
+            ),
+        ]
+    },
+}
 
 # Setup the application
 setup(
     name="ImageFormatConverter",
     version="0.1",
     description="Image Format Converter",
-    options={"build_exe": build_exe_options},
-    executables=[exe]
+    options={"build_exe": build_exe_options, "bdist_msi": msi_options},
+    executables=[exe],
 )
