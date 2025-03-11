@@ -1,5 +1,5 @@
 Pillow>=10.1.0  #Pillow 10.1 and greater supports python 3.12
-PySide6>=6.0.0 # PySide6 generally has good compatibility, but it's wise to check their official documentation for specific version constraints if you encounter issues.
-numpy>=1.20.0 # NumPy also generally maintains good compatibility.  Again, refer to official docs if problems arise.
-opencv-python>=4.0.0 # OpenCV is generally compatible, but check their specific release notes if necessary.
-pillow-heif>=0.14.0 #The search results indicate pillow-heif supports Python 3.9, 3.10, 3.11, 3.12, and 3.13
+PySide6>=6.0.0 # PySide6 generally has good compatibility
+numpy>=1.20.0 # NumPy also generally maintains good compatibility.  
+opencv-python>=4.0.0 # OpenCV is generally compatible
+pillow-heif>=0.14.0 

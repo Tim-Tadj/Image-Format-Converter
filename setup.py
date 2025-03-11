@@ -59,7 +59,7 @@ if sys.platform == "win32":
 exe = Executable(
     script="img_convert_gui.py",
     base=base,
-    icon=None  # Replace with your icon file if you have one
+    icon=None 
 )
 
 # Setup the application
