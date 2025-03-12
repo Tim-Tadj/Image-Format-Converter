@@ -11,6 +11,11 @@ A simple GUI application to convert images between various formats (JPG, PNG, BM
 *   Adjust HEIC quality.
 *   Parallel processing for faster conversion.
 
+## Installation
+Windows installer available from releases page:
+[Release 0.1.0](https://github.com/Tim-Tadj/Image-Format-Converter/releases/tag/v0.1.0)
+
+
 ## Build Instructions
 
 This project uses [uv](https://astral.sh/blog/uv) as the Python project manager. To build the application, follow these steps:
