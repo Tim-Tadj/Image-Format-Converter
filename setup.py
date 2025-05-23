@@ -72,7 +72,7 @@ msi_options = {
 # Setup the application
 setup(
     name="ImageFormatConverter",
-    version="0.1",
+    version="0.2",
     description="Image Format Converter",
     options={"build_exe": build_exe_options, "bdist_msi": msi_options},
     executables=[exe],
