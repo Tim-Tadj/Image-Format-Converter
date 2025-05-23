@@ -9,21 +9,23 @@ import pillow_heif
 from pillow_heif import register_heif_opener
 from PySide6.QtWidgets import (
     QApplication,
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
+    QCheckBox,
     QComboBox,
     QFileDialog,
-    QProgressBar,
-    QCheckBox,
-    QLineEdit,
-    QSpinBox,
     QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
     QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
     QTextEdit,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 from PySide6.QtCore import Qt, QThreadPool, QRunnable, Signal, QObject, Slot
 
