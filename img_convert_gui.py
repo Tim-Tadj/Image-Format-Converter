@@ -243,6 +243,23 @@ class MainWindow(QMainWindow):
         self.is_processing = False
         self.output_dir_set = False  # Flag to track if output dir is set
 
+        # Prepare input formats for the combobox
+        self.input_formats = {"Auto-detect": []} # Auto-detect maps to all extensions
+        for ext in SUPPORTED_INPUT_EXTENSIONS:
+            display_ext = ext[1:].upper()
+            # Group extensions like JPG and JPEG under JPG
+            if display_ext == "JPEG":
+                display_ext = "JPG"
+            if display_ext not in self.input_formats:
+                self.input_formats[display_ext] = []
+            self.input_formats[display_ext].append(ext)
+        # For Auto-detect, gather all unique extensions
+        all_exts = set()
+        for ext_list in self.input_formats.values():
+            all_exts.update(ext_list)
+        self.input_formats["Auto-detect"] = sorted(list(all_exts))
+
+
         self.setup_ui()
         self.converter = None
 
@@ -273,9 +290,11 @@ class MainWindow(QMainWindow):
         self.recursive_check = QCheckBox("Process subdirectories recursively")
         self.recursive_check.setChecked(True)  # Default to True
         self.recursive_check.stateChanged.connect(self.update_file_count)
+        self.recursive_check.setToolTip("Process all subdirectories within the selected directory.")
 
         refresh_btn = QPushButton("Refresh")
         refresh_btn.clicked.connect(self.update_file_count)
+        refresh_btn.setToolTip("Re-scan the selected directory using the current input format and recursive settings.")
 
         dir_options_layout.addWidget(self.recursive_check)
         dir_options_layout.addStretch()
@@ -283,10 +302,44 @@ class MainWindow(QMainWindow):
 
         input_layout.addLayout(dir_options_layout)
 
-        # Files found indicator
-        self.files_found_label = QLabel("No files selected")
-        self.files_found_label.setStyleSheet("font-weight: bold;")
-        input_layout.addWidget(self.files_found_label)
+        # Input format selection
+        input_format_layout = QHBoxLayout()
+        input_format_layout.addWidget(QLabel("Input format:"))
+        self.input_format_combo = QComboBox()
+        
+        # Populate input format combo box
+        # Add "Auto-detect" first
+        self.input_format_combo.addItem("Auto-detect")
+        # Add other formats, ensuring JPG is favored over JPEG for display
+        display_formats = sorted([fmt for fmt in self.input_formats.keys() if fmt != "Auto-detect"])
+        
+        # Custom sort to ensure specific order if needed, e.g. JPG before PNG
+        # For now, alphabetical sort is fine for unique display names
+        
+        for fmt in display_formats:
+            self.input_format_combo.addItem(fmt)
+            
+        self.input_format_combo.setCurrentText("Auto-detect")
+        self.input_format_combo.currentTextChanged.connect(self.update_file_count)
+        self.input_format_combo.setToolTip(
+            "Select the input image format. 'Auto-detect' will try to identify supported images by their extension."
+        )
+        input_format_layout.addWidget(self.input_format_combo)
+        input_format_layout.addStretch() # Add stretch to push combo box to the left
+        input_layout.addLayout(input_format_layout)
+
+        # File tree view
+        self.file_tree_widget = QTreeWidget()
+        self.file_tree_widget.setColumnCount(1)
+        self.file_tree_widget.setHeaderLabels(["Files for Conversion"])
+        self.file_tree_widget.setToolTip("Lists image files found. Check/uncheck files to include/exclude them from conversion.")
+        input_layout.addWidget(self.file_tree_widget)
+        
+        # Active files count label (replaces old files_found_label functionality)
+        self.active_files_label = QLabel("0 files selected for conversion")
+        self.active_files_label.setStyleSheet("font-weight: bold;")
+        input_layout.addWidget(self.active_files_label)
+
 
         # Output settings
         self.output_group = QGroupBox("Output")
@@ -403,8 +456,9 @@ class MainWindow(QMainWindow):
         # Initial log message
         self.log_text.append("Image Converter ready.")
         self.log_text.append(
-            "Supported input formats: "
+            "Input formats: Select a specific format or 'Auto-detect' (checks: "
             + ", ".join([ext[1:].upper() for ext in SUPPORTED_INPUT_EXTENSIONS])
+            + ")."
         )
         self.log_text.append(
             "Supported output formats: " + ", ".join(SUPPORTED_OUTPUT_FORMATS)
@@ -415,6 +469,42 @@ class MainWindow(QMainWindow):
 
         # Initial state for output options
         self.toggle_output_group(self.replace_files_check.checkState())
+
+        # Connect itemChanged signal for the tree widget
+        if hasattr(self, 'file_tree_widget'):
+            self.file_tree_widget.itemChanged.connect(self.update_active_file_count)
+
+
+    def update_active_file_count(self, item=None): # item is passed by the signal but not always needed
+        """Updates the active_files_label and convert_btn state based on checked items."""
+        if not hasattr(self, 'file_tree_widget'):
+            return
+
+        checked_count = 0
+        total_items = 0
+        root = self.file_tree_widget.invisibleRootItem()
+        
+        # If current_dir is None, it means we are in single file mode or no dir selected
+        # In this case, total_items should be the number of items currently in the tree.
+        if self.current_dir is None:
+            total_items = root.childCount()
+        else:
+            # If a directory is selected, total_items is len(self.files_to_convert)
+            # which represents all files found by collect_files, not just what's in tree.
+            # This needs to be from the tree itself for "X of Y" to make sense.
+            total_items = root.childCount()
+
+
+        for i in range(root.childCount()):
+            tree_item = root.child(i)
+            if tree_item.checkState(0) == Qt.Checked:
+                checked_count += 1
+        
+        if hasattr(self, 'active_files_label'):
+            self.active_files_label.setText(f"{checked_count} of {total_items} files selected")
+        
+        self.convert_btn.setEnabled(checked_count > 0)
+
 
     def toggle_heic_quality(self, format_text):
         """Show or hide HEIC quality settings based on selected format"""
@@ -444,18 +534,35 @@ class MainWindow(QMainWindow):
         self.log_text.append("Log cleared.")
 
     def select_input_file(self):
-        file_filter = (
-            f"Image Files ({' '.join(['*' + ext for ext in SUPPORTED_INPUT_EXTENSIONS])})"
-        )
+        selected_format = self.input_format_combo.currentText()
+        
+        if selected_format == "Auto-detect":
+            file_filter = (
+                f"All Supported Image Files ({' '.join(['*' + ext for ext in SUPPORTED_INPUT_EXTENSIONS])})"
+            )
+        else:
+            extensions = self.input_formats.get(selected_format, [])
+            if extensions:
+                # Format name for display, e.g. "JPEG"
+                format_display_name = selected_format.upper()
+                # Create filter string, e.g., "JPEG Files (*.jpg *.jpeg)"
+                file_filter = f"{format_display_name} Files ({' '.join(['*' + ext for ext in extensions])})"
+            else: # Fallback, should ideally not happen
+                file_filter = (
+                    f"All Supported Image Files ({' '.join(['*' + ext for ext in SUPPORTED_INPUT_EXTENSIONS])})"
+                )
+
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Image File", "", file_filter
         )
         if file_path:
             self.input_path_edit.setText(file_path)
-            self.files_to_convert = [file_path]
-            self.convert_btn.setEnabled(True)
+            self.current_dir = None # Single file mode, so no current directory for refresh
+            self.files_to_convert = [file_path] # This list will be used by update_file_list_display
+            
+            self.update_file_list_display() # Call the new method to update UI
+
             self.log_text.append(f"Selected file: {file_path}")
-            self.files_found_label.setText("1 file selected")
 
             # Set output directory to the input directory if not already set
             if not self.output_dir_set:
@@ -470,7 +577,7 @@ class MainWindow(QMainWindow):
         if dir_path:
             self.input_path_edit.setText(dir_path)
             self.current_dir = dir_path
-            self.update_file_count()
+            self.update_file_count() # This will call collect_files and then update_file_list_display
             self.log_text.append(f"Selected directory: {dir_path}")
 
             # Set output directory to the input directory if not already set
@@ -481,26 +588,69 @@ class MainWindow(QMainWindow):
     def update_file_count(self):
         """Update the count of files in the selected directory"""
         if not self.current_dir or self.is_processing:
+            # Clear tree and label if no directory is selected or if processing
+            if hasattr(self, 'file_tree_widget'): # Ensure widget exists
+                self.file_tree_widget.clear()
+            if hasattr(self, 'active_files_label'): # Ensure widget exists
+                self.active_files_label.setText("0 files selected for conversion")
+            self.convert_btn.setEnabled(False)
+            self.files_processed_label.setText(f"0/0 files processed")
             return
 
         try:
+            # Clear the tree before populating
+            if hasattr(self, 'file_tree_widget'):
+                self.file_tree_widget.clear()
+            
             self.collect_files(self.current_dir, self.recursive_check.isChecked())
-            count = len(self.files_to_convert)
-            self.files_found_label.setText(f"{count} image files found")
+            
+            if hasattr(self, 'file_tree_widget'): # Ensure widget exists
+                self.file_tree_widget.clear() # Clear tree here before collect_files potentially adds to self.files_to_convert
+            
+            self.collect_files(self.current_dir, self.recursive_check.isChecked())
+            
+            # After collecting files, update the display which includes populating the tree
+            self.update_file_list_display()
 
-            # Update the convert button state
-            self.convert_btn.setEnabled(count > 0)
-
-            # Update the files processed label
-            self.files_processed_label.setText(f"0/{count} files processed")
-
-            # Log the update
-            self.log_text.append(f"Updated file count: {count} images found")
+            # Log the update (count is now handled in update_file_list_display)
+            # self.log_text.append(f"Updated file list: {len(self.files_to_convert)} image files found based on current selection.")
         except Exception as e:
             self.log_text.append(f"Error updating file count: {str(e)}")
             QMessageBox.critical(
                 self, "Error", f"Failed to scan directory: {str(e)}"
             )
+
+    def update_file_list_display(self):
+        """Updates the file tree widget and related UI elements based on self.files_to_convert."""
+        if not hasattr(self, 'file_tree_widget'): # Should not happen
+            return
+            
+        self.file_tree_widget.clear()
+        
+        for file_path in self.files_to_convert: # Assumes self.files_to_convert is already set
+            item = QTreeWidgetItem(self.file_tree_widget)
+            item.setText(0, file_path)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(0, Qt.Checked)
+
+        count = len(self.files_to_convert)
+        if hasattr(self, 'active_files_label'): # Ensure widget exists
+            self.active_files_label.setText(f"{count} files selected for conversion")
+        
+        self.convert_btn.setEnabled(count > 0) # Enable button if files are present
+        
+        # Update the progress label denominator
+        if count > 0:
+             self.files_processed_label.setText(f"0/{count} files processed")
+        else:
+            self.files_processed_label.setText(f"0/0 files processed")
+        
+        # Log the number of files found and listed
+        self.log_text.append(f"Displaying {count} files in the list.")
+        
+        # Initialize active file count label and convert button state
+        self.update_active_file_count()
+
 
     def select_output_dir(self):
         dir_path = QFileDialog.getExistingDirectory(
@@ -514,18 +664,30 @@ class MainWindow(QMainWindow):
 
     def collect_files(self, dir_path, recursive=True):
         self.files_to_convert = []
+        selected_format = self.input_format_combo.currentText()
+        
+        if selected_format == "Auto-detect":
+            # Use all extensions from SUPPORTED_INPUT_EXTENSIONS, already prepared in self.input_formats["Auto-detect"]
+            # However, SUPPORTED_INPUT_EXTENSIONS is a tuple of strings like ('.jpg', '.png') which is what endswith() needs
+            extensions_to_check = SUPPORTED_INPUT_EXTENSIONS 
+        else:
+            extensions_to_check = tuple(self.input_formats.get(selected_format, []))
+
+        if not extensions_to_check: # Should not happen if self.input_formats is correctly populated
+            self.log_text.append(f"Warning: No extensions found for format {selected_format}. Defaulting to all.")
+            extensions_to_check = SUPPORTED_INPUT_EXTENSIONS
 
         try:
             if recursive:
                 for root, _, files in os.walk(dir_path):
                     for file in files:
-                        if file.lower().endswith(SUPPORTED_INPUT_EXTENSIONS):
+                        if file.lower().endswith(extensions_to_check):
                             # Normalize path
                             file_path = os.path.normpath(os.path.join(root, file))
                             self.files_to_convert.append(file_path)
             else:
                 for file in os.listdir(dir_path):
-                    if file.lower().endswith(SUPPORTED_INPUT_EXTENSIONS):
+                    if file.lower().endswith(extensions_to_check):
                         # Normalize path
                         file_path = os.path.normpath(os.path.join(dir_path, file))
                         self.files_to_convert.append(file_path)
@@ -553,18 +715,31 @@ class MainWindow(QMainWindow):
             # Mark as processing - this locks the file list
             self.is_processing = True
 
-            # Create a copy of the files_to_convert list to ensure it doesn't change during processing
-            files_to_process = self.files_to_convert.copy()
+            files_to_process = []
+            root = self.file_tree_widget.invisibleRootItem()
+            for i in range(root.childCount()):
+                item = root.child(i)
+                if item.checkState(0) == Qt.Checked:
+                    files_to_process.append(item.text(0))
+            
             total_files = len(files_to_process)
 
-            self.log_text.append(f"Locked in {total_files} files for processing")
+            if total_files == 0:
+                QMessageBox.warning(self, "No Files Selected", "Please select at least one file to convert.")
+                self.convert_btn.setEnabled(True) # Re-enable convert button
+                self.cancel_btn.setEnabled(False)
+                self.is_processing = False
+                self.progress_label.setText("Ready")
+                return
+
+            self.log_text.append(f"Starting conversion for {total_files} selected files.")
             self.files_processed_label.setText(
                 f"0/{total_files} files processed"
             )
 
             # Create and start worker
             self.converter = ImageConverter(
-                files_to_process,
+                files_to_process, # Pass the list of checked files
                 self.format_combo.currentText(),
                 output_dir,
                 self.append_suffix_check.isChecked(),

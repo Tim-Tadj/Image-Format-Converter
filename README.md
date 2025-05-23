@@ -10,6 +10,8 @@ A simple GUI application to convert images between various formats (JPG, PNG, BM
 *   Option to append a suffix to converted filenames.
 *   Adjust HEIC quality.
 *   Parallel processing for faster conversion.
+*   Select input format: Choose a specific input format (e.g., JPG, PNG) or use 'Auto-detect'.
+*   File selection tree: View and manage the list of files to be converted using a tree with checkboxes. Allows for individual file selection/deselection from a directory scan.
 
 ## Installation
 Windows installer available from releases page:
