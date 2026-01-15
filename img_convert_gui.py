@@ -2,6 +2,8 @@ import os
 import sys
 import traceback
 import concurrent.futures
+import ctypes
+import platform
 import numpy as np
 from PIL import Image
 import cv2
@@ -27,6 +29,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt, QThreadPool, QRunnable, Signal, QObject, Slot
 
 register_heif_opener()
@@ -239,6 +242,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Image Format Converter")
         self.setMinimumWidth(700)
         self.setMinimumHeight(600)
+        self._set_window_icon()
 
         self.files_to_convert = []
         self.current_dir = None
@@ -261,9 +265,18 @@ class MainWindow(QMainWindow):
             all_exts.update(ext_list)
         self.input_formats["Auto-detect"] = sorted(list(all_exts))
 
-
         self.setup_ui()
         self.converter = None
+
+    def _get_app_base_dir(self):
+        if getattr(sys, "frozen", False):
+            return os.path.dirname(sys.executable)
+        return os.path.dirname(os.path.abspath(__file__))
+
+    def _set_window_icon(self):
+        icon_path = os.path.join(self._get_app_base_dir(), "icons", "App_Icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
     def setup_ui(self):
         main_widget = QWidget()
@@ -812,6 +825,9 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
+    if platform.system() == "Windows":
+        myappid = "image.format.converter.gui"
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

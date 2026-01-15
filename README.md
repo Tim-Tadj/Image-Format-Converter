@@ -14,8 +14,8 @@ A simple GUI application to convert images between various formats (JPG, PNG, BM
 *   File selection tree: View and manage the list of files to be converted using a tree with checkboxes. Allows for individual file selection/deselection from a directory scan.
 
 ## Installation
-Windows installer available from releases page:
-[Release 0.1.0](https://github.com/Tim-Tadj/Image-Format-Converter/releases/tag/v0.1.0)
+Windows installer available from the releases page:
+https://github.com/Tim-Tadj/Image-Format-Converter/releases
 
 
 ## Build Instructions
@@ -35,17 +35,20 @@ This project uses [uv](https://astral.sh/blog/uv) as the Python project manager.
     .\.venv\Scripts\activate  # On Windows
     source ./.venv/bin/activate # On Linux/macOS
     ```
-
-4.  Build the application using `cx_Freeze`:
+4.  Install dependencies:
     ```bash
-    python setup.py build
+    uv sync
     ```
-    The appliaction will be located in the `build` directory.
+5.  Build the application using `cx_Freeze` (pyproject.toml config):
+    ```bash
+    cxfreeze build
+    ```
+    The application will be located in the `build` directory.
 
-    Or, to create an executable:
+    Or, to create an installer:
 
     ```bash
-    python setup.py bdist_msi #for windows
+    cxfreeze bdist_msi  # Windows only
     ```
-    
+
     The installer will be located in the `dist` directory.

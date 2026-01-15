@@ -1,7 +1,7 @@
 [project]
 name = "image-format-converter"
-version = "0.2.0"
-description = "Add your description here"
+version = "0.2.1"
+description = "Fast Bulk Image Convert Tool"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -11,4 +11,82 @@ dependencies = [
     "pillow>=11.1.0",
     "pillow-heif>=0.21.0",
     "pyside6>=6.8.2.1",
+]
+
+[tool.cxfreeze]
+executables = [
+    { script = "img_convert_gui.py", base = "gui", target_name = "ImageFormatConverter.exe", icon = "icons/App_Icon.ico", shortcut_name = "ImageFormatConverter", shortcut_dir = "ProgramMenuFolder" },
+]
+
+[tool.cxfreeze.build_exe]
+packages = [
+    "os",
+    "PIL",
+    "cv2",
+    "pillow_heif",
+    "PySide6.QtWidgets",
+    "PySide6.QtCore",
+    "PySide6.QtGui",
+    "numpy",
+    "numpy.linalg",
+    "numpy.fft",
+    "numpy.random",
+]
+excludes = [
+    "PySide6.Qt3D",
+    "PySide6.QtMultimedia",
+    "PySide6.QtNetwork",
+    "PySide6.QtSql",
+    "PySide6.QtWebEngineWidgets",
+    "PySide6.QtWebEngineCore",
+    "tkinter",
+    "psutil",
+    "setuptools",
+    "wheel",
+    "unittest",
+    "pydoc_data",
+    "__pycache__",
+    "tcl8",
+    "tk8.6",
+    "lib2to3",
+    "test",
+    "html",
+    "xml",
+    "xmlrpc",
+    "http",
+    "email",
+    "asyncio",
+    "curses",
+    "bz2",
+    "lzma",
+]
+include_files = [
+    ["icons", "icons"],
+]
+optimize = 2
+
+[tool.cxfreeze.bdist_msi]
+upgrade_code = "{6a97b479-304f-47c9-a9f5-25c187e7c483}"
+add_to_path = false
+all_users = false
+initial_target_dir = "[ProgramFilesFolder]\\ImageFormatConverter"
+target_name = "ImageFormatConverter"
+install_icon = "icons/App_Icon.ico"
+
+[tool.cxfreeze.bdist_msi.data]
+Shortcut = [
+    [
+        "ImageFormatConverterShortcut",
+        "ProgramMenuFolder",
+        "Image Format Converter",
+        "TARGETDIR",
+        "[TARGETDIR]ImageFormatConverter.exe",
+        "",
+        "Launch Image Format Converter",
+        0,
+        "",
+        0,
+        0,
+        "TARGETDIR",
+    ],
 ]
